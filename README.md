@@ -12,3 +12,14 @@ Instead of hardcoding categories, the app features a dynamic Hash Map (vendorMap
 
 4. State Management & Decoupling:
 The system separates Liquid State (Actual Bank/Cash balances) from Theoretical State (Income goals, Custom Mandates). This prevents data corruption. Liquid state is calculated via strict Double-Entry accounting logic derived from the Supabase database.
+
+### 🧠 System Intelligence Flow
+```mermaid
+graph TD
+    A[Bank SMS] -->|Native Bridge| B(SmsService.js)
+    B -->|Regex Translation| C{Parser.js}
+    C -->|Neural Mapping| D[Local AsyncStorage]
+    C -->|Cloud Backup| E[Supabase PostgreSQL]
+    D -->|Quantitative Analysis| F[MathEngine.js]
+    F -->|Forecasting| G[Dashboard / Analytics UI]
+    G -->|Data Portability| H[PDF/CSV Export]
