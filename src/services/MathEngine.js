@@ -1,6 +1,6 @@
 /**
- * PROJECT ZEUS MATH ENGINE v15.0
- * Purpose: Advanced financial modeling and forecasting.
+ * PROJECT ZEUS MATH ENGINE v17.0
+ * Purpose: Professional-grade financial analytics and tax estimation.
  */
 
 export const calculateNetSpentToday = (transactions) => {
@@ -18,7 +18,6 @@ export const calculateWeeklyLeft = (transactions, limit) => {
     return Math.max(0, parseFloat(limit) - spent);
 };
 
-// NEW: Category Distribution for Analytics
 export const getSpendDistribution = (transactions) => {
     const currentMonth = new Date().toISOString().slice(0, 7);
     const monthTxs = transactions.filter(t => t.type === 'DEBIT' && t.transaction_date.startsWith(currentMonth));
@@ -28,21 +27,19 @@ export const getSpendDistribution = (transactions) => {
         const cat = t.merchant.split(' | ')[0] || '⬜ GENERAL';
         distribution[cat] = (distribution[cat] || 0) + t.amount;
     });
-    return distribution;
+    
+    const total = Object.values(distribution).reduce((s,v) => s+v, 0);
+    return Object.entries(distribution).map(([name, value]) => ({
+        name,
+        value,
+        percentage: total > 0 ? ((value / total) * 100).toFixed(1) : 0
+    })).sort((a,b) => b.value - a.value);
 };
 
-// NEW: Runway Forecasting (How many days until ₹0)
-export const calculateRunway = (totalLiquidity, transactions) => {
-    if (transactions.length < 5) return "Need more data";
-    
-    // Avg daily spend over last 30 days
-    const last30Days = new Date();
-    last30Days.setDate(last30Days.getDate() - 30);
-    const recentDebits = transactions.filter(t => t.type === 'DEBIT' && t.transaction_date >= last30Days.toISOString());
-    
-    const avgDailyBurn = recentDebits.reduce((s, t) => s + t.amount, 0) / 30;
-    if (avgDailyBurn <= 0) return "∞ days";
-    
-    const daysLeft = totalLiquidity / avgDailyBurn;
-    return `${daysLeft.toFixed(0)} days left`;
+// NEW: Tax-Related Categorization logic
+export const estimateInvestments = (transactions) => {
+    // Looks for categories like 📈 INVEST, 🏦 LIC, 🏠 RENT for potential tax deductions
+    return transactions
+        .filter(t => t.merchant.includes("INVEST") || t.merchant.includes("LIC") || t.merchant.includes("RENT"))
+        .reduce((s, t) => s + t.amount, 0);
 };

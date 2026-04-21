@@ -1,51 +1,67 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { getSpendDistribution, calculateRunway } from '../services/MathEngine';
+import { getSpendDistribution, calculateRunway, estimateInvestments } from '../services/MathEngine';
 
-export default function Analytics({ transactions, totalLiquidity, onExport }) {
-    const dist = getSpendDistribution(transactions);
+export default function Analytics({ transactions, totalLiquidity, onExport, theme }) {
+    const distribution = getSpendDistribution(transactions);
     const runway = calculateRunway(totalLiquidity, transactions);
-    const sortedCats = Object.entries(dist).sort((a, b) => b[1] - a[1]);
-    const maxVal = sortedCats.length > 0 ? sortedCats[0][1] : 1;
+    const taxPotential = estimateInvestments(transactions);
 
     return (
         <ScrollView style={styles.container}>
-            <View style={styles.forecastingCard}>
-                <Text style={styles.label}>LIQUIDITY RUNWAY</Text>
-                <Text style={styles.runwayText}>{runway}</Text>
-                <Text style={styles.subLabel}>Based on your 30-day avg burn rate</Text>
+            <View style={[styles.card, { borderColor: theme.accent }]}>
+                <Text style={[styles.label, { color: theme.subtext }]}>LIQUIDITY RUNWAY</Text>
+                <Text style={[styles.runwayText, { color: theme.accent }]}>{runway}</Text>
+                <Text style={{ color: theme.subtext, fontSize: 10 }}>Based on avg daily burn rate</Text>
             </View>
 
-            <Text style={styles.sectionHeader}>SPEND DISTRIBUTION (Monthly)</Text>
-            {sortedCats.map(([cat, val]) => (
-                <View key={cat} style={styles.distRow}>
-                    <View style={{flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5}}>
-                        <Text style={{color: '#fff', fontSize: 12}}>{cat}</Text>
-                        <Text style={{color: '#888', fontSize: 12}}>₹{val.toFixed(0)}</Text>
+            <View style={styles.row}>
+                <View style={[styles.miniCard, { backgroundColor: theme.card }]}>
+                    <Text style={styles.label}>INVESTED</Text>
+                    <Text style={[styles.miniVal, { color: theme.success }]}>₹{taxPotential.toFixed(0)}</Text>
+                </View>
+                <View style={[styles.miniCard, { backgroundColor: theme.card }]}>
+                    <Text style={styles.label}>TOTAL OUT</Text>
+                    <Text style={[styles.miniVal, { color: theme.danger }]}>
+                        ₹{distribution.reduce((s,i) => s+i.value, 0).toFixed(0)}
+                    </Text>
+                </View>
+            </View>
+
+            <Text style={[styles.sectionHeader, { color: theme.subtext }]}>SPEND DISTRIBUTION (Current Month)</Text>
+            {distribution.map((item, index) => (
+                <View key={item.name} style={styles.distItem}>
+                    <View style={styles.distInfo}>
+                        <Text style={{ color: theme.text, fontSize: 13, fontWeight: 'bold' }}>{item.name}</Text>
+                        <Text style={{ color: theme.subtext, fontSize: 12 }}>{item.percentage}% (₹{item.value.toFixed(0)})</Text>
                     </View>
-                    <View style={styles.track}>
-                        <View style={[styles.fill, { width: `${(val / maxVal) * 100}%` }]} />
+                    <View style={[styles.track, { backgroundColor: theme.border }]}>
+                        <View style={[styles.fill, { width: `${item.percentage}%`, backgroundColor: theme.accent }]} />
                     </View>
                 </View>
             ))}
 
-            <TouchableOpacity style={styles.exportBtn} onPress={onExport}>
-                <Text style={styles.exportText}>📥 GENERATE CSV STATEMENT</Text>
+            <TouchableOpacity style={[styles.exportBtn, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={onExport}>
+                <Text style={{ color: theme.text, fontWeight: 'bold' }}>📥 GENERATE FINANCIAL STATEMENT (CSV)</Text>
             </TouchableOpacity>
+            
+            <View style={{ height: 50 }} />
         </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 20 },
-    forecastingCard: { backgroundColor: '#151515', padding: 25, borderRadius: 15, alignItems: 'center', marginBottom: 30, borderWidth: 1, borderColor: '#00ffcc' },
-    label: { color: '#888', fontSize: 10, letterSpacing: 2 },
-    runwayText: { color: '#00ffcc', fontSize: 32, fontWeight: 'bold', marginVertical: 10 },
-    subLabel: { color: '#444', fontSize: 10 },
-    sectionHeader: { color: '#444', fontSize: 12, fontWeight: 'bold', marginBottom: 20 },
-    distRow: { marginBottom: 20 },
-    track: { height: 4, backgroundColor: '#111', borderRadius: 2, overflow: 'hidden' },
-    fill: { height: '100%', backgroundColor: '#00ffcc', borderRadius: 2 },
-    exportBtn: { marginTop: 40, backgroundColor: '#222', padding: 20, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#333' },
-    exportText: { color: '#fff', fontWeight: 'bold', fontSize: 12 }
+    card: { padding: 25, borderRadius: 20, alignItems: 'center', marginBottom: 20, borderWidth: 1 },
+    label: { fontSize: 10, letterSpacing: 2, marginBottom: 5 },
+    runwayText: { fontSize: 32, fontWeight: 'bold' },
+    row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 },
+    miniCard: { flex: 0.48, padding: 15, borderRadius: 15, alignItems: 'center' },
+    miniVal: { fontSize: 18, fontWeight: 'bold', marginTop: 5 },
+    sectionHeader: { fontSize: 10, fontWeight: 'bold', letterSpacing: 2, marginBottom: 20 },
+    distItem: { marginBottom: 20 },
+    distInfo: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+    track: { height: 6, borderRadius: 3, overflow: 'hidden' },
+    fill: { height: '100%', borderRadius: 3 },
+    exportBtn: { marginTop: 20, padding: 20, borderRadius: 15, alignItems: 'center', borderWidth: 1 }
 });

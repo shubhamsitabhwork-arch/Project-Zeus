@@ -13,7 +13,7 @@ import { calculateNetSpentToday } from './src/services/MathEngine';
 // UI
 import { getTheme } from './src/styles/theme';
 import Dashboard from './src/screens/Dashboard';
-import Passbook from './src/screens/Passbook'; // Renamed
+import Passbook from './src/screens/Passbook';
 import Wallets from './src/screens/Wallets';
 import IncomeRadar from './src/screens/IncomeRadar';
 import Subscriptions from './src/screens/Subscriptions';
@@ -28,17 +28,15 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('DASHBOARD');
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [transactions, setTransactions] = useState([]);
-  
-  // States
   const [limits, setLimits] = useState({ monthly: '50000', weekly: '10000', visa: '60000', amazon: '150000', daily: '2000' });
   const [balances, setBalances] = useState({ bank: '0', amazonPay: '0', cash: '0' });
   const [vendorMap, setVendorMap] = useState({});
   const [incomeRecords, setIncomeRecords] = useState([]);
   const [mandates, setMandates] = useState([]);
   const [themeMode, setThemeMode] = useState('dark');
-  const [genesisDate, setGenesisDate] = useState(null); // NEW
+  const [genesisDate, setGenesisDate] = useState(null);
 
-  const [vModal, setVModal] = useState({ visible: false, tx: null, cat: '' });
+  const [vModal, setVModal] = useState({ visible: false, tx: null, cat: '', note: '' }); // Note added
   const [mModal, setMModal] = useState(false);
 
   const syncData = async () => {
@@ -51,7 +49,6 @@ export default function App() {
         const success = await authenticateUser();
         if (!success) return;
         setIsUnlocked(true);
-
         const stored = await AsyncStorage.multiGet(['limits', 'balances', 'vendorMap', 'incomeRecords', 'mandates', 'themeMode', 'genesisDate']);
         stored.forEach(([k, v]) => {
             if (v) {
@@ -67,96 +64,78 @@ export default function App() {
         });
         await syncData();
         const hasPerm = await requestSmsPermissions();
-        // Use the genesis date from memory if it exists
-        if (hasPerm) recoverMissedSms(vendorMap, JSON.parse(stored.find(x => x[0] === 'genesisDate')?.[1] || 'null'), syncData);
+        if (hasPerm) recoverMissedSms(vendorMap, genesisDate, syncData);
     };
     initApp();
   }, []);
 
-  // NEW: GENESIS POINT LOGIC
-  const setGenesisPoint = async () => {
-      const now = new Date().toISOString();
-      setGenesisDate(now);
-      await AsyncStorage.setItem('genesisDate', JSON.stringify(now));
-      Alert.alert("Genesis Set", "App will now only track transactions from this moment forward.");
+  const handleUpdateTransaction = async () => {
+      const rawMerchant = vModal.tx.merchant.split(' | ')[1] || vModal.tx.merchant;
+      const cleanName = rawMerchant.split(' [')[0].split(' ')[0];
+      
+      // Update Memory
+      const newMap = { ...vendorMap, [cleanName]: vModal.cat };
+      setVendorMap(newMap);
+      await AsyncStorage.setItem('vendorMap', JSON.stringify(newMap));
+      
+      // Build final merchant string with Note support
+      let finalStr = `${vModal.cat} | ${rawMerchant.split(' [')[0]}`;
+      if (vModal.note) finalStr += ` [📝 ${vModal.note}]`;
+
+      await supabase.from('transactions').update({ merchant: finalStr }).eq('id', vModal.tx.id);
+      setVModal({ visible: false, tx: null, cat: '', note: '' });
+      syncData();
   };
 
-  // NEW: DATA INTEGRITY DELETION
-  const handleDeleteTransaction = async (id) => {
-      const { error } = await supabase.from('transactions').delete().eq('id', id);
-      if (!error) {
-          syncData(); // Refresh UI
-      } else {
-          Alert.alert("Error", "Could not delete from Cloud.");
-      }
-  };
+  const netToday = calculateNetSpentToday(transactions);
+  const theme = getTheme(themeMode, netToday > parseFloat(limits.daily));
 
-  const netSpentToday = calculateNetSpentToday(transactions);
-  const theme = getTheme(themeMode, netSpentToday > parseFloat(limits.daily));
-
-  const getLiquidBal = (src, initial) => {
-    const c = transactions.filter(t => t.account_source === src && t.type === 'CREDIT').reduce((s,t)=>s+t.amount, 0);
-    const d = transactions.filter(t => t.account_source === src && t.type === 'DEBIT').reduce((s,t)=>s+t.amount, 0);
-    return parseFloat(initial) + c - d;
-  };
-
-  if (!isUnlocked) {
-      return (
-          <View style={{flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center'}}>
-              <Text style={{color: '#00ffcc', fontWeight: 'bold', letterSpacing: 5, marginBottom: 20}}>ZEUS SECURED</Text>
-              <ActivityIndicator color="#00ffcc" />
-          </View>
-      );
-  }
+  if (!isUnlocked) return <View style={{flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center'}}><ActivityIndicator color="#00ffcc" /></View>;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setSidebarVisible(true)}><Text style={{fontSize: 24, color: theme.text}}>☰</Text></TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.accent }]}>PROJECT ZEUS</Text>
-        <TouchableOpacity onPress={() => setMModal(true)} style={[styles.addBtn, {backgroundColor: theme.accent}]}>
-            <Text style={{fontSize: 18, fontWeight: 'bold', color: '#000'}}>＋</Text>
-        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setMModal(true)} style={[styles.addBtn, {backgroundColor: theme.accent}]}><Text style={{fontSize: 18, fontWeight: 'bold'}}>＋</Text></TouchableOpacity>
       </View>
 
       {activeTab === 'DASHBOARD' && <Dashboard transactions={transactions} weeklyLimit={limits.weekly} theme={theme} />}
-      
-      {/* RENAMED SCREEN */}
-      {activeTab === 'PASSBOOK' && <Passbook transactions={transactions} theme={theme} onSelectTransaction={(tx) => setVModal({ visible: true, tx, cat: tx.merchant.split(' | ')[0] })} onDeleteTransaction={handleDeleteTransaction} />}
-      
-      {activeTab === 'WALLETS' && <Wallets transactions={transactions} limits={limits} balances={{ bank: getLiquidBal('ICICI_ACCOUNT', balances.bank), amazonPay: getLiquidBal('AMAZON_PAY_BALANCE', balances.amazonPay), cash: getLiquidBal('PHYSICAL_CASH', balances.cash) }} theme={theme} />}
-      {activeTab === 'ANALYTICS' && <Analytics transactions={transactions} totalLiquidity={getLiquidBal('ICICI_ACCOUNT', balances.bank) + getLiquidBal('PHYSICAL_CASH', balances.cash) + getLiquidBal('AMAZON_PAY_BALANCE', balances.amazonPay)} onExport={() => exportToCSV(transactions)} theme={theme} />}
-      
-      {activeTab === 'INCOME' && <IncomeRadar records={incomeRecords} theme={theme} onDelete={(id) => { const u = incomeRecords.filter(r=>r.id!==id); setIncomeRecords(u); AsyncStorage.setItem('incomeRecords', JSON.stringify(u)); }} />}
-      {activeTab === 'SUBS' && <Subscriptions mandates={mandates} theme={theme} onUpdateStatus={(id, s) => { const u = mandates.map(m=>m.id===id?{...m, status:s}:m); setMandates(u); AsyncStorage.setItem('mandates', JSON.stringify(u)); }} onDelete={(id) => { const u = mandates.filter(m=>m.id!==id); setMandates(u); AsyncStorage.setItem('mandates', JSON.stringify(u)); }} />}
-      
-      {/* UPDATED SETTINGS SCREEN CALL */}
-      {activeTab === 'SETTINGS' && <Settings themeMode={themeMode} theme={theme} genesisDate={genesisDate} onSetGenesis={setGenesisPoint} onToggleTheme={() => { const n = themeMode === 'dark' ? 'light' : 'dark'; setThemeMode(n); AsyncStorage.setItem('themeMode', JSON.stringify(n)); }} vendorMap={vendorMap} limits={limits} onUpdateLimit={(k,v) => { const n = {...limits, [k]:v}; setLimits(n); AsyncStorage.setItem('limits', JSON.stringify(n)); }} onDeleteVendor={(v) => { const n = {...vendorMap}; delete n[v]; setVendorMap(n); AsyncStorage.setItem('vendorMap', JSON.stringify(n)); }} />}
+      {activeTab === 'PASSBOOK' && <Passbook transactions={transactions} theme={theme} onSelectTransaction={(tx) => setVModal({ visible: true, tx, cat: tx.merchant.split(' | ')[0], note: tx.merchant.match(/\[📝 (.*?)\]/)?.[1] || '' })} onDeleteTransaction={async (id) => { await supabase.from('transactions').delete().eq('id', id); syncData(); }} />}
+      {activeTab === 'WALLETS' && <Wallets transactions={transactions} limits={limits} balances={{ bank: balances.bank, amazonPay: balances.amazonPay, cash: balances.cash }} theme={theme} />}
+      {activeTab === 'ANALYTICS' && <Analytics transactions={transactions} totalLiquidity={totalLiquidity} theme={theme} onExport={() => exportToCSV(transactions)} />}
 
       <Sidebar visible={sidebarVisible} onClose={() => setSidebarVisible(false)} onNavigate={(id) => { setActiveTab(id); setSidebarVisible(false); }} theme={theme} />
       
-      <VendorModal visible={vModal.visible} selectedTx={vModal.tx} txCategory={vModal.cat} setTxCategory={(c)=>setVModal({...vModal, cat: c})} theme={theme} onSave={async () => {
-          const name = vModal.tx.merchant.split(' | ')[1].split(' ')[0];
-          const newMap = { ...vendorMap, [name]: vModal.cat };
-          setVendorMap(newMap); await AsyncStorage.setItem('vendorMap', JSON.stringify(newMap));
-          await supabase.from('transactions').update({ merchant: `${vModal.cat} | ${vModal.tx.merchant.split(' | ')[1]}` }).eq('id', vModal.tx.id);
-          setVModal({ visible: false, tx: null, cat: '' }); syncData();
-      }} onClose={() => setVModal({ ...vModal, visible: false })} />
+      {/* VENDOR MODAL WITH NOTE FIELD */}
+      <VendorModal 
+        visible={vModal.visible} 
+        selectedTx={vModal.tx} 
+        txCategory={vModal.cat} 
+        setTxCategory={(c)=>setVModal({...vModal, cat: c})} 
+        theme={theme}
+        onSave={handleUpdateTransaction} 
+        onClose={() => setVModal({ ...vModal, visible: false })} 
+      >
+          <TextInput 
+              style={{ width: '100%', backgroundColor: theme.bg, color: theme.text, padding: 10, borderRadius: 8, marginTop: 10, borderWidth: 1, borderColor: theme.border }}
+              placeholder="Add personal note (e.g. Tax, Gift)"
+              placeholderTextColor={theme.subtext}
+              value={vModal.note}
+              onChangeText={(n) => setVModal({...vModal, note: n})}
+          />
+      </VendorModal>
       
       <ManualTxModal visible={mModal} theme={theme} onSave={async (data) => {
-          const tx = { transaction_date: new Date().toISOString(), amount: data.amount, type: data.type === 'INCOME' ? 'CREDIT' : 'DEBIT', account_source: data.source, merchant: data.category ? `${data.category} | ${data.desc}` : `📝 MANUAL | ${data.desc}`, raw_sms: 'Manual' };
-          await supabase.from('transactions').insert([tx]);
+          await supabase.from('transactions').insert([{ transaction_date: new Date().toISOString(), amount: data.amount, type: data.type === 'INCOME' ? 'CREDIT' : 'DEBIT', account_source: data.source, merchant: data.category ? `${data.category} | ${data.desc}` : `📝 MANUAL | ${data.desc}`, raw_sms: 'Manual' }]);
           setMModal(false); syncData();
       }} onClose={() => setMModal(false)} />
 
       <View style={[styles.nav, {backgroundColor: theme.card, borderTopColor: theme.border}]}>
         {['DASHBOARD', 'WALLETS', 'PASSBOOK'].map(t => (
-            <TouchableOpacity key={t} onPress={() => setActiveTab(t)} style={styles.navItem}>
-                <Text style={{color: activeTab === t ? theme.accent : theme.subtext, fontSize: 10, fontWeight: 'bold'}}>{t}</Text>
-            </TouchableOpacity>
+            <TouchableOpacity key={t} onPress={() => setActiveTab(t)} style={styles.navItem}><Text style={{color: activeTab === t ? theme.accent : theme.subtext, fontSize: 10, fontWeight: 'bold'}}>{t}</Text></TouchableOpacity>
         ))}
       </View>
-      <StatusBar style={themeMode === 'dark' ? "light" : "dark"} />
     </View>
   );
 }
