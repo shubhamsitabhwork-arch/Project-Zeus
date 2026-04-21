@@ -1,6 +1,6 @@
 /**
- * PROJECT ZEUS SMS SERVICE
- * Purpose: Handles all native hardware interactions for SMS.
+ * PROJECT ZEUS SMS SERVICE v16.0
+ * Purpose: Handles SMS interception with Genesis Date filtering.
  */
 import { PermissionsAndroid, Platform } from 'react-native';
 import SmsListener from 'react-native-android-sms-listener';
@@ -17,18 +17,29 @@ export const requestSmsPermissions = async () => {
     return granted['android.permission.READ_SMS'] === 'granted';
 };
 
-export const recoverMissedSms = (vendorMap, callback) => {
-    // Look back 7 days for missed messages
-    const minDate = new Date().getTime() - (7 * 24 * 60 * 60 * 1000);
+/**
+ * recoverMissedSms now accepts genesisDate. 
+ * It will NEVER fetch anything older than this date.
+ */
+export const recoverMissedSms = (vendorMap, genesisDate, callback) => {
+    if (!genesisDate) return;
+
+    const genesisTimestamp = new Date(genesisDate).getTime();
     
-    SmsAndroid.list(JSON.stringify({ box: 'inbox', minDate }), (fail) => {
+    // Look back from now until Genesis date
+    SmsAndroid.list(JSON.stringify({ box: 'inbox', minDate: genesisTimestamp }), (fail) => {
         console.error("Inbox scan failed", fail);
     }, async (count, smsList) => {
         const messages = JSON.parse(smsList);
         let newFound = 0;
+        
         for (let msg of messages) {
+            // Verify message is exactly AFTER genesis
+            if (msg.date < genesisTimestamp) continue;
+
             const clean = parseBankSMS(msg.body, vendorMap);
             if (clean) {
+                // Check for duplicates via raw_sms hash
                 const { data } = await supabase.from('transactions').select('id').eq('raw_sms', msg.body);
                 if (data && data.length === 0) {
                     await supabase.from('transactions').insert([{
@@ -43,6 +54,6 @@ export const recoverMissedSms = (vendorMap, callback) => {
                 }
             }
         }
-        if (newFound > 0) callback(); // Trigger a UI refresh if new data found
+        if (newFound > 0) callback();
     });
 };
