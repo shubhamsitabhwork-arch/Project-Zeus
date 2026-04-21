@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "zeus-mobile",
+    "slug": "zeus-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.shubham.zeus",
+      "permissions": [
+        "READ_SMS",
+        "RECEIVE_SMS"
+      ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3a1049a7-b4ff-4718-a5d6-ecc81fac8d23"
+      }
+    }
+  }
+}
