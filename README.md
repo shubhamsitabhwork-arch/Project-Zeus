@@ -1,75 +1,103 @@
-System Name: Project Zeus (v13.0)
-Architecture Style: Monolithic Offline-First Mobile Client with Cloud Synchronization.
+⚡ Project Zeus: Neural Financial Operating System (v20.0)
+An Enterprise-Grade, Automated Personal Finance Intelligence Unit.
 
-1. The Data Ingestion Layer (The Radar):
-Zeus does not rely on unreliable bank APIs. It uses a Native Android Bridge (react-native-android-sms-listener) to intercept banking SMS payloads in real-time. If the app is killed by the OS, a background reconciliation engine (react-native-get-sms-android) scans the inbox upon the next boot, comparing local SQLite/AsyncStorage timestamps with the inbox to backfill missed data.
+Project Zeus is a high-fidelity, biometric-secured Financial OS built to eliminate the friction of manual expense tracking. By leveraging a native Android bridge, it intercepts banking SMS payloads in real-time, translating raw text into structured quantitative insights using a proprietary Regex-based Neural Mapping engine.
 
-2. The Regex Parsing Engine (parser.js):
-Raw SMS strings are fed into a customized Regular Expression (Regex) engine. It extracts the quantitative value, classifies the boolean flow (Debit/Credit), and identifies the source (Bank A/C, Visa, Amazon Pay, Cash).
-
-3. The Neural Mapping Node (Vendor Memory):
-Instead of hardcoding categories, the app features a dynamic Hash Map (vendorMap stored in AsyncStorage). When a user manually re-categorizes a transaction (e.g., changing "Zomato" to "🍔 FOOD"), the engine updates the Hash Map. All future background ingestion runs through this map first, creating a self-learning categorization loop.
-
-4. State Management & Decoupling:
-The system separates Liquid State (Actual Bank/Cash balances) from Theoretical State (Income goals, Custom Mandates). This prevents data corruption. Liquid state is calculated via strict Double-Entry accounting logic derived from the Supabase database.
-
-Biometric Sentinel: Hardware-level protection using expo-local-authentication, ensuring data privacy even if the phone is unlocked.
-
-Contextual UI: Reactive interface that shifts states based on financial "health" (Velocity tracking).
-
-### 🧠 System Intelligence Flow
-```mermaid
+🏗️ Technical Architecture (High-Level)
+Zeus follows a Decoupled Monolithic Architecture, separating UI concerns from the hardware-level data ingestion services.
 graph TD
-    A[Bank SMS] -->|Native Bridge| B(SmsService.js)
-    B -->|Regex Translation| C{Parser.js}
-    C -->|Neural Mapping| D[Local AsyncStorage]
-    C -->|Cloud Backup| E[Supabase PostgreSQL]
-    D -->|Quantitative Analysis| F[MathEngine.js]
-    F -->|Forecasting| G[Dashboard / Analytics UI]
-    G -->|Data Portability| H[PDF/CSV Export]
+    A[Native SMS Bridge] -->|Stateless Payload| B(SmsService.js)
+    B -->|Genesis Filtering| C{Regex Brain}
+    C -->|Neural Map| D[AsyncStorage Cache]
+    C -->|E2E Encrypted| E[Supabase Cloud Vault]
+    D -->|Quantitative Modeling| F[MathEngine.js]
+    F -->|Archetype Analysis| G[Insights & Analytics UI]
+    G -->|Data Portability| H[Export Service CSV]
 
-    ### 🧬 Project Zeus: Neural Data Flow
-```mermaid
+🧬 Neural Data Flow (Sequence Diagram)
+How a single transaction moves through the system:
 sequenceDiagram
     participant B as Bank SMS
-    participant R as SMS Radar (Service)
+    participant R as SMS Sentinel (Service)
     participant P as Regex Parser (Brain)
-    participant M as Memory (AsyncStorage)
+    participant M as Memory (Local Storage)
     participant V as Cloud Vault (Supabase)
-    participant UI as Neural Analytics (Screen)
+    participant UI as Passbook UI
 
-    B->>R: Raw Text Intercepted
-    R->>P: Filter via Genesis Date
-    P->>M: Check Vendor Map
-    P->>V: Hash & Sync Record
-    M->>UI: Quantitative Breakdown
-    UI->>UI: SVG Vector Rendering
+    B->>R: 1. Raw Text Intercepted
+    R->>P: 2. Filter via Genesis Date
+    P->>M: 3. Check Neural Vendor Map
+    P->>V: 4. SHA-256 Hash & Sync
+    V->>UI: 5. Synchronized State Update
+    UI->>UI: 6. Apply Behavioral Analytics
 
-    # ⚡ Project Zeus: Neural Financial Operating System
-**Built with React Native, Supabase, and Hardware-level Biometrics.**
+🚀 Core Engineering Features
+🛡️ The Sentinel Layer (Security)
+Hardware Biometrics: Integrated expo-local-authentication for mandatory FaceID/Fingerprint gates.
 
-Project Zeus is an enterprise-grade financial management platform designed to automate the gap between raw banking data and personal financial intelligence. It utilizes a native SMS bridge to eliminate manual entry, providing a 100% automated, offline-first experience.
+Genesis Point Control: A user-defined "System Start Point" that prevents historical data leakage and ensures a clean ledger.
 
-## 🛠 Technical Architecture
-* **Language & Framework:** React Native (Expo)
-* **Database:** Supabase (PostgreSQL) with Real-time Sync
-* **Security:** AES-256 Cloud Encryption & Biometric Hardware Gate (FaceID/Fingerprint)
-* **Data Ingestion:** Regex-based NLP Parser for Banking SMS payloads
-* **State Management:** Decoupled Monolithic Architecture with AsyncStorage Persistence
+Data Integrity: Implemented Non-Cascading Deletion to allow record removal without corrupting liquid balances.
 
-## 🚀 Key Engineering Features
-1.  **Neural Vendor Mapping:** A self-learning categorization engine that remembers user preferences via a Hash-Map logic.
-2.  **Genesis Point Logic:** Automated data reconciliation that filters historical "noise," ensuring a clean financial start point.
-3.  **Behavioral Analytics:** Predictive runway math and archetype identification based on 30-day burn-rate modeling.
-4.  **Social Ledger:** A decoupled P2P debt tracker that separates assets/liabilities from liquid bank math.
-5.  **Reactive Guardrails:** Local notification engine alerting users to budget breaches in real-time.
+🧠 Intelligence & Analytics
+Behavioral Archetypes: Real-time analysis of spending velocity (Defensive, Balanced, Aggressive, Critical).
 
-## 🧬 System Intelligence Flow
-```mermaid
-graph TD
-    A[Bank SMS] -->|Native Bridge| B(SmsService.js)
-    B -->|Regex Translation| C{Parser.js}
-    C -->|Neural Mapping| D[Local AsyncStorage]
-    C -->|Cloud Backup| E[Supabase PostgreSQL]
-    D -->|Behavioral Analysis| F[MathEngine.js]
-    F -->|Forecasting| G[Dashboard / Insights UI]
+Liquidity Runway: Predictive math engine forecasting "Days-to-Zero" based on 14-day average burn rates.
+
+Neural Mapping: Self-learning vendor categorization that maps raw merchant IDs (e.g., Zomato, Amazon) to user-defined categories.
+
+💼 Professional Ledger Management
+Social Ledger: Decoupled Peer-to-Peer debt tracker (Owed/Borrowed) that operates independently of bank liquidity.
+
+Mandate Intelligence: Automated tracking of recurring subscriptions with archiving and status-toggling.
+
+Reactive Guardrails: Local notification engine alerting users when category-specific budgets exceed 90% utilization.
+
+📂 Project Directory Structure
+The project follows a modularized standard for React Native engineering:
+
+    zeus-mobile/
+├── App.js                   # Main Entry Point & Orchestrator
+├── parser.js                # The Regex Brain (SMS Translator)
+├── supabase.js              # Cloud Database Configuration
+├── src/
+│   ├── components/          # Reusable UI Atoms (Modals, Sidebar)
+│   │   ├── ManualTxModal.js
+│   │   ├── Sidebar.js
+│   │   └── VendorModal.js
+│   ├── screens/             # Modular Page Modules
+│   │   ├── Dashboard.js     # The Control Tower
+│   │   ├── Passbook.js      # Renamed Chronological Ledger
+│   │   ├── Wallets.js       # Liquidity & CC Limit Manager
+│   │   ├── Analytics.js     # Vector Distribution Hub
+│   │   ├── Insights.js      # Behavioral Archetype Engine
+│   │   └── Owed.js          # Social P2P Ledger
+│   ├── services/            # Pure Logic Engines (Decoupled)
+│   │   ├── MathEngine.js    # Financial Modeling
+│   │   ├── SmsService.js    # Native Hardware Bridge
+│   │   ├── SecurityService.js # Biometric Authentication
+│   │   ├── ExportService.js # Data Portability (CSV)
+│   │   └── NotificationService.js # Push Sentinel
+│   └── styles/              # Global Design Tokens
+│       └── theme.js         # Reactive Dark/Light Mode
+
+Version,Milestone,Key Feature
+v1.0,Initial Forge,Basic SMS listening & Supabase sync.
+v13.0,Stabilization,Fixed background sync & Daily Velocity logic.
+v15.0,Modular Breakout,Decoupled App.js into src/screens architecture.
+v17.0,Intelligence Hub,Implemented Vector Analytics & Runway Forecasting.
+v19.0,The Sentinel,Added Biometrics & Behavioral Archetype tracking.
+v20.0,Production,Genesis point filtering & Social Ledger integration.
+
+🛠️ Installation & Build
+Clone the Repo: git clone https://github.com/shubhamsitabhwork-arch/Project-Zeus.git
+
+Install Dependencies: npm install
+
+Hardware Config: Ensure Android permissions for SMS and Biometrics are enabled.
+
+Environment: Set up supabase.js with your Project URL and API Key.
+
+Launch: npx expo start or eas build -p android
+
+Created and Maintained by Shubham Sitabh — Software Architect & Personal Finance Evangelist.
