@@ -10,23 +10,23 @@ Zeus follows a **Decoupled Monolithic Architecture**, separating UI concerns fro
 
 ```mermaid
 graph TD
-    A[Native SMS Bridge] -->|Stateless Payload| B(SmsService.js)
-    B -->|Genesis Filtering| C{Regex Brain}
-    C -->|Neural Map| D[Local AsyncStorage]
-    C -->|E2E Encrypted| E[Supabase Cloud Vault]
-    D -->|Quantitative Modeling| F[MathEngine.js]
-    F -->|Archetype Analysis| G[Insights & Analytics UI]
-    G -->|Data Portability| H[Export Service CSV]
-
+    A[Native SMS Bridge] --> B(SmsService.js)
+    B --> C{Regex Brain}
+    C --> D[Local AsyncStorage]
+    C --> E[Supabase Cloud Vault]
+    D --> F[MathEngine.js]
+    F --> G[Insights & Analytics UI]
+    G --> H[Export Service CSV]
 
 🧬 Neural Data Flow
 How a single transaction moves through the system:
+
 sequenceDiagram
     participant B as Bank SMS
-    participant R as SMS Sentinel (Service)
-    participant P as Regex Parser (Brain)
-    participant M as Memory (Local Storage)
-    participant V as Cloud Vault (Supabase)
+    participant R as SMS Sentinel
+    participant P as Regex Parser
+    participant M as Memory
+    participant V as Cloud Vault
     participant UI as Passbook UI
 
     B->>R: 1. Raw Text Intercepted
@@ -71,6 +71,7 @@ zeus-mobile/
 │       └── theme.js
 
 
+📊 Version History
 Version,Milestone,Key Feature
 v1.0,Initial Forge,Basic SMS listening & Supabase sync.
 v15.0,Modular Breakout,Decoupled App.js into src/screens.
