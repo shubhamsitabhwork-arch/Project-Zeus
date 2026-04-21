@@ -8,15 +8,7 @@ Project Zeus is a high-fidelity, biometric-secured Financial OS built to elimina
 ## 🏗️ Technical Architecture
 Zeus follows a **Decoupled Monolithic Architecture**, separating UI concerns from hardware-level data ingestion services.
 
-```mermaid
-graph TD
-    A[Native SMS Bridge] --> B(SmsService.js)
-    B --> C{Regex Brain}
-    C --> D[Local AsyncStorage]
-    C --> E[Supabase Cloud Vault]
-    D --> F[MathEngine.js]
-    F --> G[Insights & Analytics UI]
-    G --> H[Export Service CSV]
+
 
 🧬 Neural Data Flow
 How a single transaction moves through the system:
